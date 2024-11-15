@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Serverless
+.serverless/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log

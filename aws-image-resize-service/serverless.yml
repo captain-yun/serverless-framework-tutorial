@@ -1,0 +1,37 @@
+service: image-resize-service
+
+provider:
+  name: aws
+  region: ap-northeast-2
+  runtime: nodejs20.x
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - "s3:*"
+      Resource:
+        - arn:aws:s3:::source-bucket-image-resize-1114
+        - arn:aws:s3:::source-bucket-image-resize-1114/*
+        - arn:aws:s3:::target-bucket-image-resize-1114
+        - arn:aws:s3:::target-bucket-image-resize-1114/*
+
+functions:
+  resizeImage:
+    handler: handler.resize
+    memorySize: 1024
+    timeout: 30
+    events:
+      - s3:
+          bucket: source-bucket-image-resize-1114
+          event: s3:ObjectCreated:*
+          existing: true
+
+resources:
+  Resources:
+    TargetBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: target-bucket-image-resize-1114
+    SourceBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: source-bucket-image-resize-1114

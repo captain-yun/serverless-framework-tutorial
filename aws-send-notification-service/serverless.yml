@@ -1,11 +1,13 @@
 service: aws-send-notification-service
 
-frameworkVersion: '3'
+frameworkVersion: "4"
 
 provider:
   name: aws
   runtime: nodejs20.x
   region: ap-northeast-2
+  environment:
+    SES_SENDER_EMAIL: "jslovejs182@gmail.com"
   iam:
     role:
       statements:

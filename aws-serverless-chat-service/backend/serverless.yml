@@ -1,0 +1,79 @@
+service: serverless-chat
+
+plugins:
+  - serverless-esbuild
+  
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: ap-northeast-2
+  environment:
+    MESSAGES_TABLE: ${self:service}-messages
+    CONNECTIONS_TABLE: ${self:service}-connections
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:Scan
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MESSAGES_TABLE}"
+
+functions:
+  createMessage:
+    handler: functions/createMessage.handler
+    events:
+      - http:
+          path: messages
+          method: post
+          cors: true
+
+  getMessages:
+    handler: functions/getMessages.handler
+    events:
+      - http:
+          path: messages
+          method: get
+          cors: true
+  wsConnect:
+    handler: functions/websocket/connect.handler
+    events:
+      - websocket:
+          route: $connect
+
+  wsDisconnect:
+    handler: functions/websocket/disconnect.handler
+    events:
+      - websocket:
+          route: $disconnect
+
+  wsMessage:
+    handler: functions/websocket/message.handler
+    events:
+      - websocket:
+          route: $default
+
+resources:
+  Resources:
+    MessagesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.MESSAGES_TABLE}
+        AttributeDefinitions:
+          - AttributeName: messageId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: messageId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST 
+    
+    ConnectionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.CONNECTIONS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST

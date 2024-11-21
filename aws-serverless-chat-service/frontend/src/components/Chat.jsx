@@ -113,13 +113,19 @@ function Chat({ userId }) {
     if (!newMessage.trim()) return;
 
     try {
-      const message = await createMessage({
+      const messageData = {
         message: newMessage,
         userId,
-      });
-      setMessages([...messages, message]);
-      setNewMessage("");
-      scrollToBottom();
+      };
+      
+      // WebSocket을 통해 메시지 전송
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(messageData));
+        setNewMessage("");
+        scrollToBottom();
+      } else {
+        console.error("WebSocket is not connected");
+      }
     } catch (error) {
       console.error("Error sending message:", error);
     }

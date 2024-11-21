@@ -12,9 +12,13 @@ provider:
       Action:
         - dynamodb:PutItem
         - dynamodb:GetItem
+        - dynamodb:DeleteItem
         - dynamodb:Scan
-      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MESSAGES_TABLE}"
-
+        - execute-api:ManageConnections
+      Resource:
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MESSAGES_TABLE}"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}"
+        - "arn:aws:execute-api:${self:provider.region}:*:/*"
 functions:
   createMessage:
     handler: functions/createMessage.handler

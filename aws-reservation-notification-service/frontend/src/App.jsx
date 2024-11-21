@@ -35,7 +35,7 @@ const App = () => {
     try {
       const cronExpression = convertToCron();
       const response = await axios.post(
-        "https://<your-api-endpoint>/reservation",
+        "https:// /reservation",
         { topic, time: cronExpression },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -55,16 +55,21 @@ const App = () => {
     <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-lg mx-auto bg-white rounded-lg shadow-lg p-6 md:p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">예약 시스템</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+            예약 시스템
+          </h1>
           <p className="mt-2 text-sm text-gray-600">
             회의 예약을 위한 정보를 입력해주세요
           </p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             <div>
-              <label htmlFor="topic" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="topic"
+                className="block text-sm font-medium text-gray-700"
+              >
                 회의 주제
               </label>
               <input
@@ -80,7 +85,10 @@ const App = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="date"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   날짜
                 </label>
                 <input
@@ -94,7 +102,10 @@ const App = () => {
               </div>
 
               <div>
-                <label htmlFor="time" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="time"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   시간
                 </label>
                 <input
@@ -109,7 +120,10 @@ const App = () => {
             </div>
 
             <div>
-              <label htmlFor="frequency" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="frequency"
+                className="block text-sm font-medium text-gray-700"
+              >
                 알림 주기
               </label>
               <select

@@ -1,0 +1,48 @@
+service: reservation-system
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: ap-northeast-2
+  environment:
+    DYNAMODB_TABLE: ReservationTable
+    SNS_TOPIC_ARN:
+      Ref: NotificationTopic
+
+resources:
+  Resources:
+    ReservationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    NotificationTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: reservation-notifications
+
+functions:
+  createReservation:
+    handler: handler.createReservation
+    events:
+      - http:
+          path: reservation
+          method: post
+
+  processReservation:
+    handler: handler.processReservation
+    events:
+      - eventBridge:
+          eventBus: default
+          pattern:
+            source:
+              - "custom.reservation"

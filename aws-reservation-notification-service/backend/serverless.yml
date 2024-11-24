@@ -1,7 +1,5 @@
 service: reservation-system
 
-frameworkVersion: "3"
-
 provider:
   name: aws
   runtime: nodejs20.x
@@ -10,6 +8,47 @@ provider:
     DYNAMODB_TABLE: ReservationTable
     SNS_TOPIC_ARN:
       Ref: NotificationTopic
+    SERVICE_NAME: ${self:service}
+    STAGE: ${sls:stage}
+
+functions:
+  createReservation:
+    handler: handler.createReservation
+    environment:
+      PROCESS_LAMBDA_ARN:
+        Fn::GetAtt: [ProcessReservationLambdaFunction, Arn]    
+    events:
+      - http:
+          path: reservation
+          method: post
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: !GetAtt ReservationTable.Arn
+      - Effect: Allow
+        Action:
+          - events:PutRule
+          - events:PutTargets
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - lambda:InvokeFunction
+        Resource: 
+          - Fn::GetAtt: [ProcessReservationLambdaFunction, Arn]
+
+  processReservation:
+    handler: handler.processReservation
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+        Resource: !GetAtt ReservationTable.Arn
+      - Effect: Allow
+        Action:
+          - sns:Publish
+        Resource: !Ref NotificationTopic
 
 resources:
   Resources:
@@ -29,20 +68,3 @@ resources:
       Type: AWS::SNS::Topic
       Properties:
         TopicName: reservation-notifications
-
-functions:
-  createReservation:
-    handler: handler.createReservation
-    events:
-      - http:
-          path: reservation
-          method: post
-
-  processReservation:
-    handler: handler.processReservation
-    events:
-      - eventBridge:
-          eventBus: default
-          pattern:
-            source:
-              - "custom.reservation"

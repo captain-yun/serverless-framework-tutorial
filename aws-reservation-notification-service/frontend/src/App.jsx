@@ -35,7 +35,7 @@ const App = () => {
     try {
       const cronExpression = convertToCron();
       const response = await axios.post(
-        "https:// /reservation",
+        `${import.meta.env.VITE_API_URL}/reservation`,
         { topic, time: cronExpression },
         { headers: { "Content-Type": "application/json" } }
       );

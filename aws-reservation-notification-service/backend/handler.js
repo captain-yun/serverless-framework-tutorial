@@ -1,4 +1,5 @@
-import { DynamoDBClient, PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import {
   EventBridgeClient,
   PutRuleCommand,
@@ -15,7 +16,8 @@ const TABLE_NAME = process.env.DYNAMODB_TABLE;
 const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN;
 
 export const createReservation = async (event) => {
-  const { topic, time } = JSON.parse(event.body);
+  const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+  const { topic, time } = body;
   const reservationId = uuidv4();
 
   // Save to DynamoDB
@@ -33,6 +35,7 @@ export const createReservation = async (event) => {
       Name: ruleName,
       ScheduleExpression: `cron(${time})`,
       State: "ENABLED",
+      Description: `Scheduled notification for reservation ${reservationId}`
     })
   );
 
@@ -41,40 +44,80 @@ export const createReservation = async (event) => {
       Rule: ruleName,
       Targets: [
         {
-          Id: "processReservation",
-          Arn: process.env.AWS_LAMBDA_FUNCTION_ARN,
-          Input: JSON.stringify({ reservationId }),
-        },
-      ],
+          Id: `Target-${reservationId}`,
+          Arn: process.env.PROCESS_LAMBDA_ARN,
+          Input: JSON.stringify({
+            reservationId,
+            type: "SCHEDULED_NOTIFICATION"
+          }),
+          RetryPolicy: {
+            MaximumRetryAttempts: 2
+          }
+        }
+      ]
     })
   );
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ message: "Reservation created", reservationId }),
+    headers: {
+      'Access-Control-Allow-Origin': 'https://d2rzczc5khfcod.cloudfront.net',
+      'Access-Control-Allow-Methods': 'OPTIONS,POST',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    },
+    body: JSON.stringify({ message: "Reservation created", reservationId })
   };
 };
 
 export const processReservation = async (event) => {
-  const { reservationId } = JSON.parse(event.detail);
-  const result = await dynamoDbClient.send(
-    new GetCommand({
-      TableName: TABLE_NAME,
-      Key: { id: reservationId },
-    })
-  );
+  console.log('Received event:', JSON.stringify(event, null, 2));
+  
+  try {
+    // detail 객체에서 전달된 데이터 확인
+    const detail = event.detail || {};
+    const reservationId = detail.reservationId;
+    
+    if (!reservationId) {
+      // EventBridge 규칙의 기본 이벤트인 경우 무시
+      console.log('Ignoring default EventBridge rule event');
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Ignored default EventBridge rule event'
+        })
+      };
+    }
+    
+    console.log('Processing reservation:', reservationId);
 
-  if (!result.Item) {
-    throw new Error("Reservation not found");
+    const result = await dynamoDbClient.send(
+      new GetCommand({
+        TableName: TABLE_NAME,
+        Key: { id: reservationId }
+      })
+    );
+
+    if (!result.Item) {
+      throw new Error(`Reservation ${reservationId} not found`);
+    }
+
+    await snsClient.send(
+      new PublishCommand({
+        TopicArn: SNS_TOPIC_ARN,
+        Subject: 'Scheduled Notification',
+        Message: `알림: ${result.Item.topic}`
+      })
+    );
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        message: 'Notification sent successfully',
+        reservationId
+      })
+    };
+  } catch (error) {
+    console.error('Processing error:', error);
+    throw error;
   }
-
-  // Send Notification
-  await snsClient.send(
-    new PublishCommand({
-      TopicArn: SNS_TOPIC_ARN,
-      Message: `Reminder: ${result.Item.topic}`,
-    })
-  );
-
-  return { statusCode: 200, body: "Notification sent" };
 };

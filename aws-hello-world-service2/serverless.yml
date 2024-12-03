@@ -1,0 +1,27 @@
+service: aws-hello-world-service
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  environment:
+    MESSAGES_TABLE: ${self:service}-messages-${sls:stage}
+
+plugins:
+  - serverless-offline
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          path: hello
+          method: get
+
+  saveMessage:
+    handler: handler.saveMessage
+    events:
+      - http:
+          path: message
+          method: post
